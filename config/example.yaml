@@ -1,6 +1,6 @@
 ---
 source:
-  server: tcp://127.0.0.01:12345
+  server: tcp://pubsub.besteffort.ndovloket.nl:7664
   envelopes:
     arrivals: "/RIG/InfoPlusDASInterface4"
     departures: "/RIG/InfoPlusDVSInterface4"
@@ -8,11 +8,9 @@ source:
 api:
   address: ":8080"
 stores:
-  location: /var/cache/gotrain
+  location: /tmp/gotrain/
 archive:
-  address: :6379
-  password: ""
-  db: 0
+  endpoint: http://localhost:1000
 prometheus:
   enabled: true
   address: :2121
