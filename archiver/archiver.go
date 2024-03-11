@@ -2,47 +2,43 @@ package archiver
 
 import (
 	"encoding/json"
+	"os"
 	"time"
 
-	"github.com/go-redis/redis"
 	"github.com/rijdendetreinen/gotrain/models"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
-var redisDb *redis.Client
-
-// Connect initializes the Redis client
-func Connect() error {
-	redisAddress := viper.GetString("archive.address")
-	redisPassword := viper.GetString("archive.password")
-	redisDbNumber := viper.GetInt("archive.db")
-
-	log.WithField("address", redisAddress).
-		WithField("db", redisDbNumber).
-		Info("Connecting to Redis server")
-
-	redisDb = redis.NewClient(&redis.Options{
-		Addr:     redisAddress,
-		Password: redisPassword,
-		DB:       redisDbNumber,
-	})
-
-	result := redisDb.Ping()
-
-	return result.Err()
+func Connect() {
 }
 
-// ProcessService adds a service object to the queue
+// ProcessService posts a service object to an http endpoint
 func ProcessService(service models.Service) {
+
 	serviceJSON, _ := json.Marshal(serviceToJSON(service))
 
 	if serviceJSON != nil {
-		result := redisDb.LPush("services", string(serviceJSON))
-		err := result.Err()
+
+		var directory = viper.GetString("archive.directory")
+		if directory == "" {
+			log.Error("Archiver: archive.directory is missing from configuration")
+			return
+		}
+		var date = service.Timestamp.Format("2006-01-02")
+		var serviceDirectory = directory + "/" + date
+
+		err := os.MkdirAll(serviceDirectory, os.ModePerm)
+		if err != nil {
+			log.WithField("error", err).WithField("serviceDirectory", serviceDirectory).Error("Archiver: could not make directory")
+			return
+		}
+
+		filePath := serviceDirectory + "/" + service.ServiceNumber + ".json"
+		err = os.WriteFile(filePath, serviceJSON, 0644)
 
 		if err != nil {
-			log.WithField("error", err).WithField("ServiceID", service.ID).WithField("ProductID", service.ProductID).Error("Archiver: could not add service to queue")
+			log.WithField("error", err).WithField("ServiceID", service.ID).WithField("ProductID", service.ProductID).Error("Archiver: could post message to endpoint")
 		}
 	}
 }
