@@ -12,7 +12,7 @@ EXPOSE 8080
 
 FROM debian
 RUN apt-get update -y
-RUN apt-get -y install libzmq3-dev
+RUN apt-get -y install libzmq3-dev ca-certificates
 COPY --from=builder /go/bin/gotrain /app/gotrain
 WORKDIR /
 RUN mkdir data
